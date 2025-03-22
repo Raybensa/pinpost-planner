@@ -1,5 +1,5 @@
 
-import { CalendarDays, Grid, Home, Image, Plus } from 'lucide-react';
+import { CalendarDays, Grid, Home, Image, LogOut, Plus, User } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Sidebar,
@@ -11,6 +11,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { useState } from 'react';
 import { PostCreationModal } from '../posts/PostCreationModal';
+import { useAuth } from '@/contexts/AuthContext';
+import { toast } from 'sonner';
 
 interface NavItem {
   title: string;
@@ -40,6 +42,17 @@ export function AppSidebar() {
   const navigate = useNavigate();
   const location = useLocation();
   const [isCreationModalOpen, setIsCreationModalOpen] = useState(false);
+  const { user, signOut } = useAuth();
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      toast.success('Signed out successfully');
+      navigate('/auth');
+    } catch (error) {
+      toast.error('Failed to sign out');
+    }
+  };
 
   return (
     <>
@@ -82,9 +95,29 @@ export function AppSidebar() {
         </SidebarContent>
         
         <SidebarFooter className="p-4 border-t border-border/40">
-          <div className="flex justify-between items-center">
-            <p className="text-sm text-muted-foreground">© 2023 PinPost</p>
-            <SidebarTrigger />
+          <div className="flex flex-col space-y-2">
+            {user && (
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <User className="h-4 w-4 mr-2 text-muted-foreground" />
+                  <p className="text-sm text-muted-foreground truncate max-w-[150px]">
+                    {user.email}
+                  </p>
+                </div>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={handleSignOut}
+                  className="text-muted-foreground"
+                >
+                  <LogOut className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
+            <div className="flex justify-between items-center">
+              <p className="text-sm text-muted-foreground">© 2023 PinPost</p>
+              <SidebarTrigger />
+            </div>
           </div>
         </SidebarFooter>
       </Sidebar>

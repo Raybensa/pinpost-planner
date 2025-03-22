@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '../integrations/supabase/client';
@@ -90,7 +89,15 @@ const dbPostToFrontend = (post: any): PinPost => {
 
 // Convert frontend post to database format
 const frontendPostToDb = (post: Omit<PinPost, 'id' | 'createdAt' | 'status'> | Partial<PinPost>) => {
-  const dbPost: Record<string, any> = {};
+  const dbPost: {
+    title?: string;
+    description?: string;
+    link?: string;
+    hashtags?: string[];
+    image?: string;
+    scheduled_date?: Date | null;
+    status?: 'draft' | 'scheduled' | 'published';
+  } = {};
   
   if ('title' in post) dbPost.title = post.title;
   if ('description' in post) dbPost.description = post.description;
@@ -191,9 +198,17 @@ export const PostsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       
       const dbPost = frontendPostToDb(post);
       
+      // Add status directly here to fix TypeScript error
+      const postData = {
+        ...dbPost,
+        title: post.title,
+        image: post.image,
+        status: post.scheduledDate ? 'scheduled' : 'draft'
+      };
+      
       const { data, error } = await supabase
         .from('pin_posts')
-        .insert(dbPost)
+        .insert(postData)
         .select()
         .single();
       
