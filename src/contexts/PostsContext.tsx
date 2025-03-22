@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '../integrations/supabase/client';
@@ -95,7 +96,7 @@ const frontendPostToDb = (post: Omit<PinPost, 'id' | 'createdAt' | 'status'> | P
     link?: string;
     hashtags?: string[];
     image?: string;
-    scheduled_date?: Date | null;
+    scheduled_date?: string | null;
     status?: 'draft' | 'scheduled' | 'published';
   } = {};
   
@@ -104,10 +105,11 @@ const frontendPostToDb = (post: Omit<PinPost, 'id' | 'createdAt' | 'status'> | P
   if ('link' in post) dbPost.link = post.link;
   if ('hashtags' in post) dbPost.hashtags = post.hashtags;
   if ('image' in post) dbPost.image = post.image;
-  if ('scheduledDate' in post) dbPost.scheduled_date = post.scheduledDate;
   
-  // Set status based on scheduled date
+  // Convert Date object to ISO string for Supabase
   if ('scheduledDate' in post) {
+    dbPost.scheduled_date = post.scheduledDate ? post.scheduledDate.toISOString() : null;
+    // Set status based on scheduled date
     dbPost.status = post.scheduledDate ? 'scheduled' : 'draft';
   }
   
