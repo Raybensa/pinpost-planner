@@ -198,13 +198,14 @@ export const PostsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         return;
       }
       
-      const dbPost = frontendPostToDb(post);
-      
-      // Add status directly here to fix TypeScript error
+      // Create a properly shaped object for Supabase insert
       const postData = {
-        ...dbPost,
         title: post.title,
+        description: post.description || '',
+        link: post.link || '',
+        hashtags: post.hashtags || [],
         image: post.image,
+        scheduled_date: post.scheduledDate ? post.scheduledDate.toISOString() : null,
         status: post.scheduledDate ? 'scheduled' : 'draft'
       };
       
