@@ -95,10 +95,14 @@ Deno.serve(async (req) => {
     // Check if this is a cron job invocation (these usually come as POST with a particular signature)
     // or a manual trigger (which can be any method)
     const isCronInvocation = req.method === 'POST' && 
-      req.headers.get('user-agent')?.includes('supabase-postgres-cron');
+      (req.headers.get('user-agent')?.includes('supabase-postgres-cron') || 
+       req.headers.get('user-agent')?.includes('Supabase'));
     
     if (isCronInvocation) {
       console.log('Invoked by Supabase cron job');
+      // You can parse the body if needed
+      const body = await req.json().catch(() => ({}));
+      console.log('Cron job body:', body);
     } else {
       console.log('Manually triggered');
     }
