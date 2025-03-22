@@ -1,6 +1,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { toast } from 'sonner';
+import { supabase } from '../integrations/supabase/client';
 
 export interface PinPost {
   id: string;
@@ -16,15 +17,17 @@ export interface PinPost {
 
 interface PostsContextType {
   posts: PinPost[];
-  addPost: (post: Omit<PinPost, 'id' | 'createdAt' | 'status'>) => void;
-  updatePost: (id: string, updatedPost: Partial<PinPost>) => void;
-  deletePost: (id: string) => void;
+  loading: boolean;
+  error: Error | null;
+  addPost: (post: Omit<PinPost, 'id' | 'createdAt' | 'status'>) => Promise<void>;
+  updatePost: (id: string, updatedPost: Partial<PinPost>) => Promise<void>;
+  deletePost: (id: string) => Promise<void>;
   getPostsByDate: (date: Date) => PinPost[];
 }
 
 const PostsContext = createContext<PostsContextType | undefined>(undefined);
 
-// Sample images for demo purposes
+// Sample images for demo purposes when no user is logged in
 const SAMPLE_IMAGES = [
   'https://images.unsplash.com/photo-1613310023042-ad79320c00ff?q=80&w=2070&auto=format&fit=crop',
   'https://images.unsplash.com/photo-1588345921523-c2dcdb7f1dcd?q=80&w=2070&auto=format&fit=crop',
@@ -32,7 +35,7 @@ const SAMPLE_IMAGES = [
   'https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?q=80&w=2074&auto=format&fit=crop',
 ];
 
-// Sample posts for demo
+// Sample posts for demo when no user is logged in
 const generateSamplePosts = (): PinPost[] => {
   return [
     {
@@ -70,47 +73,221 @@ const generateSamplePosts = (): PinPost[] => {
   ];
 };
 
+// Convert database post to frontend post
+const dbPostToFrontend = (post: any): PinPost => {
+  return {
+    id: post.id,
+    title: post.title,
+    description: post.description || '',
+    link: post.link || '',
+    hashtags: post.hashtags || [],
+    image: post.image,
+    scheduledDate: post.scheduled_date ? new Date(post.scheduled_date) : null,
+    createdAt: new Date(post.created_at),
+    status: post.status,
+  };
+};
+
+// Convert frontend post to database format
+const frontendPostToDb = (post: Omit<PinPost, 'id' | 'createdAt' | 'status'> | Partial<PinPost>) => {
+  const dbPost: Record<string, any> = {};
+  
+  if ('title' in post) dbPost.title = post.title;
+  if ('description' in post) dbPost.description = post.description;
+  if ('link' in post) dbPost.link = post.link;
+  if ('hashtags' in post) dbPost.hashtags = post.hashtags;
+  if ('image' in post) dbPost.image = post.image;
+  if ('scheduledDate' in post) dbPost.scheduled_date = post.scheduledDate;
+  
+  // Set status based on scheduled date
+  if ('scheduledDate' in post) {
+    dbPost.status = post.scheduledDate ? 'scheduled' : 'draft';
+  }
+  
+  return dbPost;
+};
+
 export const PostsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [posts, setPosts] = useState<PinPost[]>(() => {
-    const savedPosts = localStorage.getItem('pinPosts');
-    return savedPosts ? JSON.parse(savedPosts) : generateSamplePosts();
-  });
+  const [posts, setPosts] = useState<PinPost[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+  const [user, setUser] = useState<any>(null);
 
-  // Save posts to localStorage whenever they change
+  // Check for user and load posts
   useEffect(() => {
-    localStorage.setItem('pinPosts', JSON.stringify(posts));
-  }, [posts]);
-
-  const addPost = (post: Omit<PinPost, 'id' | 'createdAt' | 'status'>) => {
-    const newPost: PinPost = {
-      ...post,
-      id: Date.now().toString(),
-      createdAt: new Date(),
-      status: post.scheduledDate ? 'scheduled' : 'draft',
-    };
-    
-    setPosts((prevPosts) => [...prevPosts, newPost]);
-    toast.success('Post created successfully');
-  };
-
-  const updatePost = (id: string, updatedPost: Partial<PinPost>) => {
-    setPosts((prevPosts) => 
-      prevPosts.map((post) => 
-        post.id === id 
-          ? { 
-              ...post, 
-              ...updatedPost, 
-              status: updatedPost.scheduledDate ? 'scheduled' : 'draft'
-            } 
-          : post
-      )
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        const currentUser = session?.user;
+        setUser(currentUser || null);
+        
+        if (currentUser) {
+          fetchPosts();
+        } else {
+          // Use sample posts when no user is logged in
+          setPosts(generateSamplePosts());
+          setLoading(false);
+        }
+      }
     );
-    toast.success('Post updated successfully');
+    
+    // Initial check for user
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      const currentUser = session?.user;
+      setUser(currentUser || null);
+      
+      if (currentUser) {
+        fetchPosts();
+      } else {
+        // Use sample posts when no user is logged in
+        setPosts(generateSamplePosts());
+        setLoading(false);
+      }
+    });
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
+  }, []);
+
+  const fetchPosts = async () => {
+    try {
+      setLoading(true);
+      
+      const { data, error } = await supabase
+        .from('pin_posts')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) {
+        throw error;
+      }
+      
+      const formattedPosts: PinPost[] = data.map(dbPostToFrontend);
+      setPosts(formattedPosts);
+    } catch (err: any) {
+      console.error('Error fetching posts:', err);
+      setError(err);
+      toast.error('Failed to load posts');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const deletePost = (id: string) => {
-    setPosts((prevPosts) => prevPosts.filter((post) => post.id !== id));
-    toast.success('Post deleted successfully');
+  const addPost = async (post: Omit<PinPost, 'id' | 'createdAt' | 'status'>) => {
+    try {
+      if (!user) {
+        // When not logged in, just add to local state
+        const newPost: PinPost = {
+          ...post,
+          id: Date.now().toString(),
+          createdAt: new Date(),
+          status: post.scheduledDate ? 'scheduled' : 'draft',
+        };
+        
+        setPosts(prevPosts => [...prevPosts, newPost]);
+        toast.success('Post created successfully');
+        return;
+      }
+      
+      const dbPost = frontendPostToDb(post);
+      
+      const { data, error } = await supabase
+        .from('pin_posts')
+        .insert(dbPost)
+        .select()
+        .single();
+      
+      if (error) {
+        throw error;
+      }
+      
+      const newPost = dbPostToFrontend(data);
+      setPosts(prevPosts => [...prevPosts, newPost]);
+      
+      toast.success('Post created successfully');
+    } catch (err: any) {
+      console.error('Error adding post:', err);
+      toast.error('Failed to create post');
+    }
+  };
+
+  const updatePost = async (id: string, updatedPost: Partial<PinPost>) => {
+    try {
+      if (!user) {
+        // When not logged in, just update local state
+        setPosts(prevPosts => 
+          prevPosts.map(post => 
+            post.id === id 
+              ? { 
+                  ...post, 
+                  ...updatedPost, 
+                  status: 'scheduledDate' in updatedPost 
+                    ? (updatedPost.scheduledDate ? 'scheduled' : 'draft') 
+                    : post.status
+                } 
+              : post
+          )
+        );
+        toast.success('Post updated successfully');
+        return;
+      }
+      
+      const dbPost = frontendPostToDb(updatedPost);
+      
+      const { error } = await supabase
+        .from('pin_posts')
+        .update(dbPost)
+        .eq('id', id);
+      
+      if (error) {
+        throw error;
+      }
+      
+      setPosts(prevPosts => 
+        prevPosts.map(post => 
+          post.id === id 
+            ? { 
+                ...post, 
+                ...updatedPost, 
+                status: 'scheduledDate' in updatedPost 
+                  ? (updatedPost.scheduledDate ? 'scheduled' : 'draft') 
+                  : post.status
+              } 
+            : post
+        )
+      );
+      
+      toast.success('Post updated successfully');
+    } catch (err: any) {
+      console.error('Error updating post:', err);
+      toast.error('Failed to update post');
+    }
+  };
+
+  const deletePost = async (id: string) => {
+    try {
+      if (!user) {
+        // When not logged in, just update local state
+        setPosts(prevPosts => prevPosts.filter(post => post.id !== id));
+        toast.success('Post deleted successfully');
+        return;
+      }
+      
+      const { error } = await supabase
+        .from('pin_posts')
+        .delete()
+        .eq('id', id);
+      
+      if (error) {
+        throw error;
+      }
+      
+      setPosts(prevPosts => prevPosts.filter(post => post.id !== id));
+      toast.success('Post deleted successfully');
+    } catch (err: any) {
+      console.error('Error deleting post:', err);
+      toast.error('Failed to delete post');
+    }
   };
 
   // Helper function to get posts for a specific date
@@ -128,7 +305,15 @@ export const PostsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   return (
-    <PostsContext.Provider value={{ posts, addPost, updatePost, deletePost, getPostsByDate }}>
+    <PostsContext.Provider value={{ 
+      posts, 
+      loading, 
+      error, 
+      addPost, 
+      updatePost, 
+      deletePost,
+      getPostsByDate 
+    }}>
       {children}
     </PostsContext.Provider>
   );

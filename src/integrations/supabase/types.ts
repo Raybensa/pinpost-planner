@@ -9,7 +9,87 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      pin_posts: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          hashtags: string[] | null
+          id: string
+          image: string
+          link: string | null
+          pinterest_post_id: string | null
+          publish_error: string | null
+          published_at: string | null
+          scheduled_date: string | null
+          status: string
+          title: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          hashtags?: string[] | null
+          id?: string
+          image: string
+          link?: string | null
+          pinterest_post_id?: string | null
+          publish_error?: string | null
+          published_at?: string | null
+          scheduled_date?: string | null
+          status: string
+          title: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          hashtags?: string[] | null
+          id?: string
+          image?: string
+          link?: string | null
+          pinterest_post_id?: string | null
+          publish_error?: string | null
+          published_at?: string | null
+          scheduled_date?: string | null
+          status?: string
+          title?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          email: string
+          id: string
+          name: string | null
+          pinterest_access_token: string | null
+          pinterest_refresh_token: string | null
+          pinterest_token_expires_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          email: string
+          id: string
+          name?: string | null
+          pinterest_access_token?: string | null
+          pinterest_refresh_token?: string | null
+          pinterest_token_expires_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          email?: string
+          id?: string
+          name?: string | null
+          pinterest_access_token?: string | null
+          pinterest_refresh_token?: string | null
+          pinterest_token_expires_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
