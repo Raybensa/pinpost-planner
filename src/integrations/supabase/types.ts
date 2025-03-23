@@ -57,6 +57,47 @@ export type Database = {
         }
         Relationships: []
       }
+      pinterest_api_logs: {
+        Row: {
+          created_at: string
+          endpoint: string
+          error_message: string | null
+          id: string
+          post_id: string | null
+          response_body: string | null
+          status_code: number | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          endpoint: string
+          error_message?: string | null
+          id?: string
+          post_id?: string | null
+          response_body?: string | null
+          status_code?: number | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          endpoint?: string
+          error_message?: string | null
+          id?: string
+          post_id?: string | null
+          response_body?: string | null
+          status_code?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pinterest_api_logs_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "pin_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -64,6 +105,7 @@ export type Database = {
           id: string
           name: string | null
           pinterest_access_token: string | null
+          pinterest_board_id: string | null
           pinterest_refresh_token: string | null
           pinterest_token_expires_at: string | null
           updated_at: string | null
@@ -74,6 +116,7 @@ export type Database = {
           id: string
           name?: string | null
           pinterest_access_token?: string | null
+          pinterest_board_id?: string | null
           pinterest_refresh_token?: string | null
           pinterest_token_expires_at?: string | null
           updated_at?: string | null
@@ -84,6 +127,7 @@ export type Database = {
           id?: string
           name?: string | null
           pinterest_access_token?: string | null
+          pinterest_board_id?: string | null
           pinterest_refresh_token?: string | null
           pinterest_token_expires_at?: string | null
           updated_at?: string | null
@@ -95,7 +139,12 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      check_pinterest_rate_limit: {
+        Args: {
+          user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never

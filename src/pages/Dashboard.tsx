@@ -1,10 +1,12 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { usePosts } from '@/contexts/PostsContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { PostGrid } from '@/components/posts/PostGrid';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Clock, ListFilter, Plus, Search } from 'lucide-react';
+import { Clock, ListFilter, Plus, Search, RefreshCw, LinkIcon } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { 
   DropdownMenu, 
@@ -16,13 +18,46 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
 import { PostCreationModal } from '@/components/posts/PostCreationModal';
+import { toast } from 'sonner';
 
 const Dashboard = () => {
-  const { posts } = usePosts();
+  const { posts, refreshPosts } = usePosts();
+  const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState<'newest' | 'oldest'>('newest');
   const [isCreationModalOpen, setIsCreationModalOpen] = useState(false);
+  const [isPinterestConnected, setIsPinterestConnected] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  
+  // Check Pinterest connection status
+  useEffect(() => {
+    const checkPinterestConnection = async () => {
+      if (!user) return;
+      
+      try {
+        const { data } = await supabase
+          .from('profiles')
+          .select('pinterest_access_token')
+          .eq('id', user.id)
+          .single();
+        
+        setIsPinterestConnected(!!data?.pinterest_access_token);
+      } catch (error) {
+        console.error('Error checking Pinterest connection:', error);
+      }
+    };
+    
+    checkPinterestConnection();
+  }, [user]);
+  
+  // Handle refreshing posts
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await refreshPosts();
+    setIsRefreshing(false);
+    toast.success('Posts refreshed');
+  };
   
   // Filter posts by status and search term
   const filterPosts = (status: 'all' | 'draft' | 'scheduled' | 'published') => {
@@ -66,13 +101,35 @@ const Dashboard = () => {
       <div className="flex flex-col md:flex-row justify-between gap-4 items-start md:items-center">
         <h1 className="text-3xl font-bold">Post Dashboard</h1>
         
-        <Button 
-          onClick={() => setIsCreationModalOpen(true)}
-          className="bg-pin-blue hover:bg-pin-blue/90"
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          Create Post
-        </Button>
+        <div className="flex gap-2">
+          {!isPinterestConnected && (
+            <Button 
+              variant="outline" 
+              onClick={() => window.location.href = '/settings'}
+              className="flex items-center text-yellow-700 bg-yellow-50 border-yellow-200 hover:bg-yellow-100"
+            >
+              <LinkIcon className="mr-2 h-4 w-4" />
+              Connect Pinterest
+            </Button>
+          )}
+          
+          <Button 
+            variant="outline" 
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+          
+          <Button 
+            onClick={() => setIsCreationModalOpen(true)}
+            className="bg-pin-blue hover:bg-pin-blue/90"
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Create Post
+          </Button>
+        </div>
       </div>
       
       <div className="flex flex-col md:flex-row gap-4">

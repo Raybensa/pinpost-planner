@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { PinPost } from '@/contexts/PostsContext';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
+import { Calendar, MoreHorizontal, Pencil, Trash2, ExternalLink, AlertCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { 
   DropdownMenu, 
@@ -14,6 +14,7 @@ import {
 import { PostCreationModal } from './PostCreationModal';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { usePosts } from '@/contexts/PostsContext';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface PostCardProps {
   post: PinPost;
@@ -22,6 +23,30 @@ interface PostCardProps {
 export const PostCard: React.FC<PostCardProps> = ({ post }) => {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const { deletePost } = usePosts();
+  
+  const getStatusBadge = () => {
+    switch (post.status) {
+      case 'published':
+        return (
+          <Badge className="bg-green-500 hover:bg-green-600">
+            Published
+          </Badge>
+        );
+      case 'scheduled':
+        return (
+          <Badge className="bg-yellow-500 hover:bg-yellow-600">
+            Scheduled
+          </Badge>
+        );
+      case 'draft':
+      default:
+        return (
+          <Badge variant="outline">
+            Draft
+          </Badge>
+        );
+    }
+  };
   
   return (
     <>
@@ -42,6 +67,17 @@ export const PostCard: React.FC<PostCardProps> = ({ post }) => {
                   <Pencil className="h-4 w-4 mr-2" />
                   Edit
                 </DropdownMenuItem>
+                
+                {post.pinterestPostId && (
+                  <DropdownMenuItem 
+                    className="cursor-pointer"
+                    onClick={() => window.open(`https://pinterest.com/pin/${post.pinterestPostId}`, '_blank')}
+                  >
+                    <ExternalLink className="h-4 w-4 mr-2" />
+                    View on Pinterest
+                  </DropdownMenuItem>
+                )}
+                
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
                     <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-red-500 cursor-pointer">
@@ -67,19 +103,41 @@ export const PostCard: React.FC<PostCardProps> = ({ post }) => {
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
+          
+          <div className="absolute top-2 left-2">
+            {getStatusBadge()}
+          </div>
         </div>
         <CardContent className="p-4">
           <h3 className="font-medium line-clamp-1">{post.title}</h3>
           <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{post.description}</p>
           
-          {post.scheduledDate && (
-            <div className="flex items-center gap-1 mt-2 text-xs text-gray-500">
-              <Calendar className="h-3 w-3" />
-              <span>
-                {format(new Date(post.scheduledDate), 'MMM d, yyyy')}
-              </span>
-            </div>
-          )}
+          <div className="flex flex-wrap gap-2 mt-2">
+            {post.scheduledDate && (
+              <div className="flex items-center gap-1 text-xs text-gray-500">
+                <Calendar className="h-3 w-3" />
+                <span>
+                  {format(new Date(post.scheduledDate), 'MMM d, yyyy')}
+                </span>
+              </div>
+            )}
+            
+            {post.publishError && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger>
+                    <div className="flex items-center gap-1 text-xs text-red-500">
+                      <AlertCircle className="h-3 w-3" />
+                      <span>Error</span>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="max-w-xs">{post.publishError}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
+          </div>
         </CardContent>
         {post.hashtags.length > 0 && (
           <CardFooter className="px-4 pb-4 pt-0 flex flex-wrap gap-1">

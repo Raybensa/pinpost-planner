@@ -13,6 +13,10 @@ export interface PinPost {
   scheduledDate: Date | null;
   createdAt: Date;
   status: 'draft' | 'scheduled' | 'published';
+  publishedAt?: Date | null;
+  pinterestPostId?: string | null;
+  publishError?: string | null;
+  userId?: string | null;
 }
 
 interface PostsContextType {
@@ -23,6 +27,7 @@ interface PostsContextType {
   updatePost: (id: string, updatedPost: Partial<PinPost>) => Promise<void>;
   deletePost: (id: string) => Promise<void>;
   getPostsByDate: (date: Date) => PinPost[];
+  refreshPosts: () => Promise<void>;
 }
 
 const PostsContext = createContext<PostsContextType | undefined>(undefined);
@@ -85,6 +90,10 @@ const dbPostToFrontend = (post: any): PinPost => {
     scheduledDate: post.scheduled_date ? new Date(post.scheduled_date) : null,
     createdAt: new Date(post.created_at),
     status: post.status,
+    publishedAt: post.published_at ? new Date(post.published_at) : null,
+    pinterestPostId: post.pinterest_post_id,
+    publishError: post.publish_error,
+    userId: post.user_id
   };
 };
 
@@ -98,6 +107,7 @@ const frontendPostToDb = (post: Omit<PinPost, 'id' | 'createdAt' | 'status'> | P
     image?: string;
     scheduled_date?: string | null;
     status?: 'draft' | 'scheduled' | 'published';
+    publish_error?: string | null;
   } = {};
   
   if ('title' in post) dbPost.title = post.title;
@@ -105,6 +115,7 @@ const frontendPostToDb = (post: Omit<PinPost, 'id' | 'createdAt' | 'status'> | P
   if ('link' in post) dbPost.link = post.link;
   if ('hashtags' in post) dbPost.hashtags = post.hashtags;
   if ('image' in post) dbPost.image = post.image;
+  if ('publishError' in post) dbPost.publish_error = post.publishError;
   
   // Convert Date object to ISO string for Supabase
   if ('scheduledDate' in post) {
@@ -182,6 +193,8 @@ export const PostsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   };
 
+  const refreshPosts = fetchPosts;
+
   const addPost = async (post: Omit<PinPost, 'id' | 'createdAt' | 'status'>) => {
     try {
       if (!user) {
@@ -206,7 +219,8 @@ export const PostsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         hashtags: post.hashtags || [],
         image: post.image,
         scheduled_date: post.scheduledDate ? post.scheduledDate.toISOString() : null,
-        status: post.scheduledDate ? 'scheduled' : 'draft'
+        status: post.scheduledDate ? 'scheduled' : 'draft',
+        user_id: user.id
       };
       
       const { data, error } = await supabase
@@ -330,7 +344,8 @@ export const PostsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       addPost, 
       updatePost, 
       deletePost,
-      getPostsByDate 
+      getPostsByDate,
+      refreshPosts
     }}>
       {children}
     </PostsContext.Provider>
