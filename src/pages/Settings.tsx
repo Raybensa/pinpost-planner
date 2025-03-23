@@ -4,7 +4,8 @@ import { PinterestConnection } from '@/components/account/PinterestConnection';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { LogOut, User } from 'lucide-react';
+import { LogOut } from 'lucide-react';
+import AccountInfo from '@/components/account/AccountInfo';
 
 const Settings = () => {
   const { user, signOut } = useAuth();
@@ -21,27 +22,7 @@ const Settings = () => {
       </div>
       
       <div className="grid grid-cols-1 gap-8">
-        <Card>
-          <CardHeader>
-            <CardTitle>Your Profile</CardTitle>
-            <CardDescription>
-              Manage your account settings
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-col gap-4">
-              <div>
-                <h3 className="font-medium text-sm">Email</h3>
-                <p className="text-muted-foreground">{user?.email}</p>
-              </div>
-              
-              <div>
-                <h3 className="font-medium text-sm">User ID</h3>
-                <p className="text-muted-foreground text-xs">{user?.id}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <AccountInfo user={user} />
         
         <PinterestConnection />
         
