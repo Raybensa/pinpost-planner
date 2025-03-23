@@ -87,8 +87,8 @@ export const PinterestConnection = () => {
         throw new Error('No authentication token available');
       }
       
-      // Call our Pinterest auth edge function to get the auth URL
-      const response = await fetch(`${supabase.supabaseUrl}/functions/v1/pinterest-auth`, {
+      // Use the absolute URL for the function endpoint instead of accessing supabaseUrl directly
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL || 'https://zoliumvlprgssryecypq.supabase.co'}/functions/v1/pinterest-auth`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
