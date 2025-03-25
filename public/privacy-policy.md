@@ -1,8 +1,8 @@
-# Privacy Policy for [Your App Name]
+# Privacy Policy for Pinpost Scheduler
 
 Effective Date: 25 March 2025
 
-Welcome to Pinpost Scheduler ("the App"), a Pinterest Pin Scheduler designed to help users schedule and manage their Pins on Pinterest. At **[Your Company/Developer Name]**, we are committed to protecting your privacy and ensuring the security of your personal information. This Privacy Policy explains how we collect, use, store, and protect your data when you use our App.
+Welcome to Pinpost Scheduler ("the App"), a Pinterest Pin Scheduler designed to help users schedule and manage their Pins on Pinterest. At Pinpost, we are committed to protecting your privacy and ensuring the security of your personal information. This Privacy Policy explains how we collect, use, store, and protect your data when you use our App.
 
 By using Pinpost Scheduler, you agree to the terms outlined in this Privacy Policy. If you do not agree with these terms, please do not use the App.
 
